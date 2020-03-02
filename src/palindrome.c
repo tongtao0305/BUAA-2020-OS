@@ -5,10 +5,10 @@ int main()
 	scanf("%d",&n);
 
 	char num[10001];
-	int copy=n;
-	int cnt=0;
+	int copy = n;
+	int cnt = 0;
 	int i;
-	int flag=1;
+	int flag = 1;
 
 	while (copy > 0){
 		num[cnt++] = copy % 10;
