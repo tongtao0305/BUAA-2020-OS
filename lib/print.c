@@ -68,58 +68,54 @@ lp_Print(void (*output)(void *, char *, int),
 
 	{ 
 	    /* scan for the next '%' */
-		s=fmt;
-		for (;;){
-			if (*s=='%'){
-				break;
-			}
-			s++;
-		}	    
-	
 	    /* flush the string found so far */
-		OUTPUT(arg,fmt,s-fmt);
-		fmt=s;
+	    if ((*fmt != '\0')&&(*fmt != '%')){
+		OUTPUT(arg,fmt,1);
+		fmt++;
+		continue;	
+	    }	
 
 	    /* check "are we hitting the end?" */
-		if (*fmt=='\0'){
-			break;
-		}
+	    if (*fmt=='\0'){
+		break;
+	    }
 	}
 
 	/* we found a '%' */
+	/* check for long */
 	fmt++;	
 	
-	/* check for long */
-	padc=' ';
+	longFlag=0;
+	negFlag=0;
+	width=0;
+	prec=0;
 	ladjust=0;
+	padc=' ';
+	length=0;
 	if (*fmt=='-'){
 		ladjust=1;
 		fmt++;
 	}	
 	if (*fmt=='0'){
-		padc=0;
+		padc=*fmt;
 		fmt++;
 	}
-	
-	width=0;
 	while(IsDigit(*fmt)){
 		width=width*10+Ctod(*fmt);
 		fmt++;
 	}
 	/* check for other prefixes */
 	if (*fmt=='.'){
+	    fmt++;
+	    if (IsDigit(*fmt)){
 		prec=0;
-		fmt++;
 		while(IsDigit(*fmt)){
-			prec=prec*10+Ctod(*fmt);
-			fmt++;
+		    prec=prec*10+Ctod(*fmt++);
 		}
-	}else{
-		prec=6;
+	    }
 	}	
 
 	/* check format flag */
-	longFlag=0;
 	if (*fmt=='l'){
 		longFlag=1;
 		fmt++;
