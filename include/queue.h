@@ -110,7 +110,14 @@
  */
 
 
-#define LIST_INSERT_AFTER(listelm, elm, field)
+#define LIST_INSERT_AFTER(listelm, elm, field) do {						\
+		(elm)->field.le_next = (listelm)->field.le_next;				\
+		if ((listelm)->field.le_next != NULL){						\
+			((listelm)->field.le_next)->field.le_prev = &((elm)->field.le_next);  	\
+		}										\
+		(listelm)->field.le_next = elm;							\
+		(elm)->field.le_prev = &((listelm)->field.le_next);				\
+	} while (0)
         // Note: assign a to b <==> a = b
         //Step 1, assign elm.next to listelem.next.
         //Step 2: Judge whether listelm.next is NULL, if not, then assign listelm.pre to a proper value.
@@ -146,7 +153,21 @@
  * The "field" name is the link element as above. You can refer to LIST_INSERT_HEAD.
  * Note: this function has big differences with LIST_INSERT_HEAD !
  */
-#define LIST_INSERT_TAIL(head, elm, field)
+#define LIST_INSERT_TAIL(head, elm, field) do {					\
+		/* 设置临时变量tmp_elm */					\
+		typeof(LIST_FIRST(head)) tmp_elm = LIST_FIRST(head);		\
+		if (tmp_elm == NULL) {						\
+			/* 如果该链表为空链表 */				\
+			LIST_FIRST(head) = elm;					\
+			(elm)->field.le_prev = &LIST_FIRST((head));		\
+			(elm)->field.le_next = NULL;				\
+			break;							\
+		}								\
+		while((LIST_NEXT((tmp_elm),field) != NULL)) {			\
+			tmp_elm = LIST_NEXT((tmp_elm),field);			\
+		}								\
+		LIST_INSERT_AFTER(tmp_elm, elm, field);				\
+	} while (0)
 /* finish your code here. */
 
 
