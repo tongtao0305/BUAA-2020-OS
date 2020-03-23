@@ -47,8 +47,6 @@ lp_Print(void (*output)(void *, char *, int),
     char *s;
     long int num;
 
-	
-
     int longFlag;
     int negFlag;
     int width;
