@@ -86,23 +86,36 @@ static void *alloc(u_int n, u_int align, int clear)
 	then create it.*/
 static Pte *boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 {
-
+    // 对应的页目录地址
     Pde *pgdir_entryp;
+    // 页表起始地址和页表项地址
     Pte *pgtable, *pgtable_entry;
 
     /* Step 1: Get the corresponding page directory entry and page table. */
     /* Hint: Use KADDR and PTE_ADDR to get the page table from page directory
      * entry value. */
-
+    // 页目录地址 = 页目录基地址 + 页目录号；    
+    pgdir_entryp = pgdir + PDX(va);
 
     /* Step 2: If the corresponding page table is not exist and parameter `create`
      * is set, create one. And set the correct permission bits for this new page
      * table. */
-
+    // 如果页目录的页目录的物理地址的PTE_V位表示没有页表
+    if ((*pgdir_entryp & PTE_V) == 0x0) {
+	if (create) {
+	    // 为页表分配内存，返回虚拟地址 
+            pgtable = alloc(BY2PG, BY2PG, 1);
+            // 页表项内容是物理页框号（前20位）、有效位（PTE_V）、脏位（PTE_R） 
+            *pgdir_entryp = (Pde)PADDR(pgtable) | PTE_V | PTE_R;
+        }    
+    }
 
     /* Step 3: Get the page table entry for `va`, and return it. */
-
-
+    // 页表项基地址是该页目录存储的物理地址，PTE_ADDR对地址标志位清零 
+    pgtable = (Pte*)KADDR(PTE_ADDR(*pgdir_entryp));
+    // 该页表项地址 = 页表项基地址 + 偏移量 
+    pgtable_entryp = &pgtable[PTX(va)];
+    return pgtable_entryp;
 }
 
 /*Overview:
@@ -119,11 +132,16 @@ void boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm)
     Pte *pgtable_entry;
 
     /* Step 1: Check if `size` is a multiple of BY2PG. */
-
+    assert(size % BY2PG == 0);
 
     /* Step 2: Map virtual address space to physical address. */
     /* Hint: Use `boot_pgdir_walk` to get the page table entry of virtual address `va`. */
-
+    for (i=0; i<size; i+= BY2PG){
+    	// 该函数返回的是虚拟地址为va+i所对应的页表项虚拟地址 
+        pgtable_entry = boot_pgdir_walk(pgdir,va+i,1); 
+        // 页表项存储的是物理地址
+    	*pgtable_entry = (pa + i)|perm|PTE_V;    
+    }
 
 }
 
@@ -276,16 +294,30 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
     struct Page *ppage;
 
     /* Step 1: Get the corresponding page directory entry and page table. */
-
+    pgdir_entryp = pgdir + PDX(va);
 
     /* Step 2: If the corresponding page table is not exist(valid) and parameter `create`
      * is set, create one. And set the correct permission bits for this new page
      * table.
      * When creating new page table, maybe out of memory. */
-
+    if ((*pgdir_entryp & PTE_V) == 0){
+    	if (create){
+	    if (page_alloc(&ppage) == 0){
+	    	// ppage是一个页表 
+                // page2pa函数左移12位的意义：多少页*4KB 
+                // page2pa是物理地址ppage
+                *pgdir_entryp = page2pa(ppage)|(PTE_V|PTE_R);
+                // 对应页的使用次数加一
+                ppage->pp_ref += 1;	   
+	    } else {
+	    	return -E_NO_MEN;
+	    }
+	}
+    }
 
     /* Step 3: Set the page table entry to `*ppte` as return value. */
-
+    pgtable = (Pte*)KADDR(PTE_ADDR(*pgdir_entryp));
+    *ppte = pgtable + PTX(va);
 
     return 0;
 }
@@ -322,16 +354,19 @@ page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm)
     }
 
     /* Step 2: Update TLB. */
-
     /* hint: use tlb_invalidate function */
-
+    tlb_invalidate(pgdir, va);
 
     /* Step 3: Do check, re-get page table entry to validate the insertion. */
 
     /* Step 3.1 Check if the page can be insert, if can’t return -E_NO_MEM */
-
+    if (pgdir_walk(pgdir, va, 1, &pgtable_entry) != 0) {
+        return -E_NO_MEM;
+    }   
     /* Step 3.2 Insert page and increment the pp_ref */
-
+    *pgtable_entry = page2pa(pp) | PERM;
+    pp->pp_ref++;
+    
     return 0;
 }
 
