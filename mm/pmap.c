@@ -26,7 +26,7 @@ void mips_detect_memory()
 {
     /* Step 1: Initialize basemem.
      * (When use real computer, CMOS tells us how many kilobytes there are). */
-    maxpa = 0x04000000;
+    maxpa = 64 * 1024 * 1024;
     basemem = 64 * 1024 * 1024;
     extmem = 0;
     // Step 2: Calculate corresponding npage value.
@@ -204,16 +204,17 @@ page_init(void)
 
     /* Step 3: Mark all memory blow `freemem` as used(set `pp_ref`
      * filed to 1) */
-    int i;
-    int num = PADDR(freemem) / BY2PG;
-    for (i = 0; i < num; i++){
-	pages[i].pp_ref = 1;
-    }
-
     /* Step 4: Mark the other memory as free. */
-    for (i = num; i < npage; i++){
-    	pages[i].pp_ref = 0;
-	LIST_INSERT_HEAD(&page_free_list, &pages[i], pp_link);
+    struct Page *apage;
+    u_long i;
+    for (i = 0; i < npage; i++) {
+        apage = &pages[i];        
+        if (ULIM + page2pa(apage) < freemem) {
+            apage->pp_ref = 1; 
+        } else {
+            apage->pp_ref = 0;
+            LIST_INSERT_HEAD(&page_free_list, apage, pp_link);
+        }
     }
 }
 
@@ -240,7 +241,7 @@ page_alloc(struct Page **pp)
     if ((ppage_temp = LIST_FIRST(&page_free_list)) == NULL){
 	return -E_NO_MEM;
     }
-
+    LIST_REMOVE(ppage_temp, pp_link);   
     /* Step 2: Initialize this page.
      * Hint: use `bzero`. */
     *pp = ppage_temp;

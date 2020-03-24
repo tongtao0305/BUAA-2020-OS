@@ -154,19 +154,17 @@
  * Note: this function has big differences with LIST_INSERT_HEAD !
  */
 #define LIST_INSERT_TAIL(head, elm, field) do {					\
-		/* 设置临时变量tmp_elm */					\
-		typeof(LIST_FIRST(head)) tmp_elm = LIST_FIRST(head);		\
-		if (tmp_elm == NULL) {						\
-			/* 如果该链表为空链表 */				\
-			LIST_FIRST(head) = elm;					\
-			(elm)->field.le_prev = &LIST_FIRST((head));		\
-			(elm)->field.le_next = NULL;				\
-			break;							\
+		if (LIST_FIRST(head) == NULL) {					\
+			/* 如果这是一个空链表 */				\
+			LIST_INSERT_HEAD(head, elm, field);			\
+		} else {							\
+			LIST_FOREACH(LIST_NEXT(elm, field), head, field)	\
+				if (LIST_NEXT(elm, field)->field.le_next == NULL)\
+					break;					\
+			LIST_NEXT(elm, field)->field.le_next = (elm);		\
+			(elm)->field.le_prev = &LIST_NEXT(LIST_NEXT(elm, field), field);\
+			LIST_NEXT(elm, field) = NULL;				\
 		}								\
-		while((LIST_NEXT((tmp_elm),field) != NULL)) {			\
-			tmp_elm = LIST_NEXT((tmp_elm),field);			\
-		}								\
-		LIST_INSERT_AFTER(tmp_elm, elm, field);				\
 	} while (0)
 /* finish your code here. */
 
