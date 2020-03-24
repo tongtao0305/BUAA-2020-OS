@@ -114,8 +114,9 @@ static Pte *boot_pgdir_walk(Pde *pgdir, u_long va, int create)
     // 页表项基地址是该页目录存储的物理地址，PTE_ADDR对地址标志位清零 
     pgtable = (Pte*)KADDR(PTE_ADDR(*pgdir_entryp));
     // 该页表项地址 = 页表项基地址 + 偏移量 
-    pgtable_entryp = &pgtable[PTX(va)];
-    return pgtable_entryp;
+    pgtable_entry = pgtable + PTX(va);
+
+    return pgtable_entry;
 }
 
 /*Overview:
@@ -137,10 +138,11 @@ void boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm)
     /* Step 2: Map virtual address space to physical address. */
     /* Hint: Use `boot_pgdir_walk` to get the page table entry of virtual address `va`. */
     for (i=0; i<size; i+= BY2PG){
+        va_temp = va + i;
     	// 该函数返回的是虚拟地址为va+i所对应的页表项虚拟地址 
-        pgtable_entry = boot_pgdir_walk(pgdir,va+i,1); 
+        pgtable_entry = boot_pgdir_walk(pgdir, va_temp, 1); 
         // 页表项存储的是物理地址
-    	*pgtable_entry = (pa + i)|perm|PTE_V;    
+    	*pgtable_entry = (pa + i) | perm | PTE_V;    
     }
 
 }
@@ -310,7 +312,7 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
                 // 对应页的使用次数加一
                 ppage->pp_ref += 1;	   
 	    } else {
-	    	return -E_NO_MEN;
+	    	return -E_NO_MEM;
 	    }
 	}
     }
