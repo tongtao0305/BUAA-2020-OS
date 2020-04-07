@@ -103,15 +103,13 @@ env_init(void)
     int i;
     /*Step 1: Initial env_free_list. */
     LIST_INIT(&env_free_list);
-    LIST_INIT(&env_sched_list[0]); 
-    LIST_INIT(&env_sched_list[1]);
 
     /*Step 2: Traverse the elements of 'envs' array,
      * set their status as free and insert them into the env_free_list.
      * Choose the correct loop order to finish the insertion.
      * Make sure, after the insertion, the order of envs in the list
      * should be the same as it in the envs array. */
-    for (i = NENV-1; i>=0; i--){
+    for (i = NENV - 1; i >= 0; i--){
         envs[i].env_status = ENV_FREE;
         LIST_INSERT_HEAD(&env_free_list, &envs[i], env_link);
     }
@@ -137,7 +135,7 @@ env_setup_vm(struct Env *e)
     /* Step 1: Allocate a page for the page directory
      * using a function you completed in the lab2 and add its pp_ref.
      * pgdir is the page directory of Env e, assign value for it. */
-    if ((r = page_alloc(&p)) < 0) {
+    if ((r = page_alloc(&p)) != 0) {
         panic("env_setup_vm - page alloc error\n");
         return r;
     }
@@ -160,9 +158,13 @@ env_setup_vm(struct Env *e)
     for (i = PDX(UTOP); i <= PDX(~0); i++){
         pgdir[i] = boot_pgdir[i];
     }
-
+    e->env_pgdir = pgdir;
+    e->env_cr3 = PADDR(pgdir);
+    
     // UVPT maps the env's own page table, with read-only permission.
-    e->env_pgdir[PDX(UVPT)]  = e->env_cr3 | PTE_V;
+    e->env_pgdir[PDX(VPT)]   = e->env_cr3; 
+    e->env_pgdir[PDX(UVPT)]  = e->env_cr3 | PTE_V | PTE_R;
+
     return 0;
 }
 
@@ -200,7 +202,7 @@ env_alloc(struct Env **new, u_int parent_id)
 
     /*Step 2: Call certain function(has been completed just now) to init kernel memory layout for this new Env.
      *The function mainly maps the kernel address to this new Env address. */
-    if ((r = env_setup_vm(e)) < 0){
+    if ((r = env_setup_vm(e)) != 0){
         return r;
     }
 
@@ -208,6 +210,7 @@ env_alloc(struct Env **new, u_int parent_id)
     e->env_status = ENV_RUNNABLE;
     e->env_parent_id = parent_id;
     e->env_id = mkenvid(e);
+    e->env_runs = 0;
 
     /*Step 4: Focus on initializing the sp register and cp0_status of env_tf field, located at this new Env. */
     e->env_tf.cp0_status = 0x10001004;
@@ -458,12 +461,12 @@ env_run(struct Env *e)
     /* Hint: if there is an environment running, you should do
     *  switch the context and save the registers. You can imitate env_destroy() 's behaviors.*/
     if (curenv != NULL) {
-		struct Trapframe *old = (struct Trapframp *)(TIMESTACK - sizeof(struct Trapframe));
-		bcopy(old, &(curenv->env_tf), sizeof(struct Trapframe));
-		curenv->env_tf.pc = curenv->env_tf.cp0_epc;
+        curenv->env_tf = *((struct Trapframe *)(TIMESTACK - sizeof(struct Trapframe)));	
+        curenv->env_tf.pc = curenv->env_tf.cp0_epc;
 	}
     /*Step 2: Set 'curenv' to the new environment. */
     curenv = e;
+    curenv->env_status = ENV_RUNNABLE;
 
     /*Step 3: Use lcontext() to switch to its address space. */
     lcontext(e->env_pgdir);
