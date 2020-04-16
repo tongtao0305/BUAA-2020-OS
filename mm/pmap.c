@@ -9,7 +9,7 @@ u_long maxpa;            /* Maximum physical address */
 u_long npage;            /* Amount of memory(in pages) */
 u_long basemem;          /* Amount of base memory(in bytes) */
 u_long extmem;           /* Amount of extended memory(in bytes) */
-
+ 
 Pde *boot_pgdir;
 
 struct Page *pages;
