@@ -113,6 +113,13 @@ int sys_set_pgfault_handler(int sysno, u_int envid, u_int func,
     struct Env *env;
     int ret;
 
+    if ((ret = envid2env(envid, &env, 1)) != 0) {
+        return ret;
+    }
+
+    env->env_pgfault_handler = func;
+    env->env_xstacktop = xstacktop;
+
     return 0;
     //	panic("sys_set_pgfault_handler not implemented");
 }
@@ -274,6 +281,28 @@ int sys_env_alloc(void) {
     int r;
     struct Env *e;
 
+    // create child-env
+    if (env_alloc(&e, curenv->env_id) != 0) {
+        return -E_NO_FREE_ENV;
+    }
+
+    // copy TrapFrame
+    bcopy((void *)(KERNEL_SP - sizeof(struct Trapframe)), &(curenv->env_tf),
+          sizeof(struct Trapframe));
+    bcopy(&(curenv->env_tf), &(e->env_tf), sizeof(struct Trapframe));
+
+    // copy PC
+    e->env_tf.pc = curenv->env_tf.cp0_epc;
+
+    // set return value
+    e->env_tf.regs[2] = 0;
+
+    // set status
+    e->env_status = ENV_NOT_RUNNABLE;
+
+    // copy env_pri
+    e->env_pri = curenv->env_pri;
+
     return e->env_id;
     //	panic("sys_env_alloc not implemented");
 }
@@ -296,7 +325,20 @@ int sys_set_env_status(int sysno, u_int envid, u_int status) {
     struct Env *env;
     int ret;
 
+    if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE &&
+        status != ENV_FREE) {
+        return -E_INVAL;
+    }
+
+    if ((ret = envid2env(envid, &env, PTE_V)) != 0) {
+        return ret;
+    }
+    env->env_status = status;
+    if (status == ENV_RUNNABLE) {
+        LIST_INSERT_HEAD(&env_sched_list[0], env, env_sched_link);
+    }
     return 0;
+
     //	panic("sys_env_set_status not implemented");
 }
 
@@ -344,7 +386,16 @@ void sys_panic(int sysno, char *msg) {
  * ENV_NOT_RUNNABLE, giving up cpu.
  */
 /*** exercise 4.7 ***/
-void sys_ipc_recv(int sysno, u_int dstva) {}
+void sys_ipc_recv(int sysno, u_int dstva) {
+    // check dstva
+    if (dstva < 0 || dstva >= UTOP) {
+        return;
+    }
+    curenv->env_ipc_recving = 1;
+    curenv->env_ipc_dstva = dstva;
+    curenv->env_status = ENV_NOT_RUNNABLE;
+    sys_yield();
+}
 
 /* Overview:
  * 	Try to send 'value' to the target env 'envid'.
@@ -369,6 +420,34 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
     int r;
     struct Env *e;
     struct Page *p;
+
+    // check srcva
+    if (srcva >= UTOP || srcva < 0) {
+        return -E_INVAL;
+    }
+
+    // check envid
+    if (envid2env(envid, &e, 0) != 0) {
+        return -E_BAD_ENV;
+    }
+
+    if (e->env_status != 1) {
+        return -E_IPC_NOT_RECV;
+    }
+
+    // update target's ipc fields
+    e->env_ipc_recving = 0;
+    e->env_ipc_from = curenv->env_id;
+    e->env_ipc_value = value;
+    e->env_status = ENV_RUNNABLE;
+
+    if (srcva != 0) {
+        if (r = sys_mem_map(sysno, curenv->env_id, srcva, envid,
+                            e->env_ipc_dstva, perm)) {
+            return r;
+        }
+        e->env_ipc_perm = perm;
+    }
 
     return 0;
 }
