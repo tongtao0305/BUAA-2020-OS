@@ -1,47 +1,46 @@
-#include "../drivers/gxconsole/dev_cons.h"
-#include <mmu.h>
 #include <env.h>
-#include <printf.h>
+#include <mmu.h>
 #include <pmap.h>
+#include <printf.h>
 #include <sched.h>
+
+#include "../drivers/gxconsole/dev_cons.h"
 
 extern char *KERNEL_SP;
 extern struct Env *curenv;
 
 /* Overview:
  * 	This function is used to print a character on screen.
- * 
+ *
  * Pre-Condition:
  * 	`c` is the character you want to print.
  */
-void sys_putchar(int sysno, int c, int a2, int a3, int a4, int a5)
-{
-	printcharc((char) c);
-	return ;
+void sys_putchar(int sysno, int c, int a2, int a3, int a4, int a5) {
+    printcharc((char)c);
+    return;
 }
 
 /* Overview:
  * 	This function enables you to copy content of `srcaddr` to `destaddr`.
  *
  * Pre-Condition:
- * 	`destaddr` and `srcaddr` can't be NULL. Also, the `srcaddr` area 
- * 	shouldn't overlap the `destaddr`, otherwise the behavior of this 
+ * 	`destaddr` and `srcaddr` can't be NULL. Also, the `srcaddr` area
+ * 	shouldn't overlap the `destaddr`, otherwise the behavior of this
  * 	function is undefined.
  *
  * Post-Condition:
  * 	the content of `destaddr` area(from `destaddr` to `destaddr`+`len`) will
  * be same as that of `srcaddr` area.
  */
-void *memcpy(void *destaddr, void const *srcaddr, u_int len)
-{
-	char *dest = destaddr;
-	char const *src = srcaddr;
+void *memcpy(void *destaddr, void const *srcaddr, u_int len) {
+    char *dest = destaddr;
+    char const *src = srcaddr;
 
-	while (len-- > 0) {
-		*dest++ = *src++;
-	}
+    while (len-- > 0) {
+        *dest++ = *src++;
+    }
 
-	return destaddr;
+    return destaddr;
 }
 
 /* Overview:
@@ -50,10 +49,7 @@ void *memcpy(void *destaddr, void const *srcaddr, u_int len)
  * Post-Condition:
  * 	return the current environment id
  */
-u_int sys_getenvid(void)
-{
-	return curenv->env_id;
-}
+u_int sys_getenvid(void) { return curenv->env_id; }
 
 /* Overview:
  *	This function enables the current process to give up CPU.
@@ -62,42 +58,46 @@ u_int sys_getenvid(void)
  * 	Deschedule current environment. This function will never return.
  */
 /*** exercise 4.6 ***/
-void sys_yield(void)
-{
+void sys_yield(void) {
+    struct Trapframe *src =
+        (struct Trapframe *)(KERNEL_SP - sizeof(struct Trapframe));
+    struct Trapframe *dst =
+        (struct Trapframe *)(TIMESTACK - sizeof(struct Trapframe));
+    bcopy((void *)src, (void *)dst, sizeof(struct Trapframe));
+    sched_yield();
 }
 
 /* Overview:
  * 	This function is used to destroy the current environment.
  *
  * Pre-Condition:
- * 	The parameter `envid` must be the environment id of a 
- * process, which is either a child of the caller of this function 
+ * 	The parameter `envid` must be the environment id of a
+ * process, which is either a child of the caller of this function
  * or the caller itself.
  *
  * Post-Condition:
  * 	Return 0 on success, < 0 when error occurs.
  */
-int sys_env_destroy(int sysno, u_int envid)
-{
-	/*
-		printf("[%08x] exiting gracefully\n", curenv->env_id);
-		env_destroy(curenv);
-	*/
-	int r;
-	struct Env *e;
+int sys_env_destroy(int sysno, u_int envid) {
+    /*
+        printf("[%08x] exiting gracefully\n", curenv->env_id);
+        env_destroy(curenv);
+    */
+    int r;
+    struct Env *e;
 
-	if ((r = envid2env(envid, &e, 1)) < 0) {
-		return r;
-	}
+    if ((r = envid2env(envid, &e, 1)) < 0) {
+        return r;
+    }
 
-	printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
-	env_destroy(e);
-	return 0;
+    printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
+    env_destroy(e);
+    return 0;
 }
 
 /* Overview:
  * 	Set envid's pagefault handler entry point and exception stack.
- * 
+ *
  * Pre-Condition:
  * 	xstacktop points one byte past exception stack.
  *
@@ -107,15 +107,14 @@ int sys_env_destroy(int sysno, u_int envid)
  * 	Returns 0 on success, < 0 on error.
  */
 /*** exercise 4.12 ***/
-int sys_set_pgfault_handler(int sysno, u_int envid, u_int func, u_int xstacktop)
-{
-	// Your code here.
-	struct Env *env;
-	int ret;
+int sys_set_pgfault_handler(int sysno, u_int envid, u_int func,
+                            u_int xstacktop) {
+    // Your code here.
+    struct Env *env;
+    int ret;
 
-
-	return 0;
-	//	panic("sys_set_pgfault_handler not implemented");
+    return 0;
+    //	panic("sys_set_pgfault_handler not implemented");
 }
 
 /* Overview:
@@ -124,7 +123,7 @@ int sys_set_pgfault_handler(int sysno, u_int envid, u_int func, u_int xstacktop)
  *
  * 	If a page is already mapped at 'va', that page is unmapped as a
  * side-effect.
- * 
+ *
  * Pre-Condition:
  * perm -- PTE_V is required,
  *         PTE_COW is not allowed(return -E_INVAL),
@@ -136,14 +135,34 @@ int sys_set_pgfault_handler(int sysno, u_int envid, u_int func, u_int xstacktop)
  *	- env may modify its own address space or the address space of its children
  */
 /*** exercise 4.3 ***/
-int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
-{
-	// Your code here.
-	struct Env *env;
-	struct Page *ppage;
-	int ret;
-	ret = 0;
+int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm) {
+    // Your code here.
+    struct Env *env;
+    struct Page *ppage;
+    int ret;
+    ret = 0;
 
+    if (va < 0 || va >= UTOP) {
+        return -E_UNSPECIFIED;
+    }
+
+    if ((perm & PTE_COW) || !(perm & PTE_V)) {
+        return -E_INVAL;
+    }
+
+    if ((ret = envid2env(envid, &env, 1)) != 0) {
+        return ret;
+    }
+
+    if ((ret = page_alloc(&ppage)) != 0) {
+        return ret;
+    }
+
+    if ((ret = page_insert(env->env_pgdir, ppage, va, 1)) != 0) {
+        return ret;
+    }
+
+    return ret;
 }
 
 /* Overview:
@@ -161,23 +180,50 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
  */
 /*** exercise 4.4 ***/
 int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
-				u_int perm)
-{
-	int ret;
-	u_int round_srcva, round_dstva;
-	struct Env *srcenv;
-	struct Env *dstenv;
-	struct Page *ppage;
-	Pte *ppte;
+                u_int perm) {
+    int ret;
+    u_int round_srcva, round_dstva;
+    struct Env *srcenv;
+    struct Env *dstenv;
+    struct Page *ppage;
+    Pte *ppte;
 
-	ppage = NULL;
-	ret = 0;
-	round_srcva = ROUNDDOWN(srcva, BY2PG);
-	round_dstva = ROUNDDOWN(dstva, BY2PG);
+    ppage = NULL;
+    ret = 0;
+    round_srcva = ROUNDDOWN(srcva, BY2PG);
+    round_dstva = ROUNDDOWN(dstva, BY2PG);
 
-    //your code here
+    // check addr
+    if (srcva >= UTOP || dstva >= UTOP || srcva < 0 || dstva < 0) {
+        return -E_UNSPECIFIED;
+    }
 
-	return ret;
+    // check perm
+    if (!(perm & PTE_V)) {
+        return -E_INVAL;
+    }
+
+    // check srcenv
+    if (envid2env(srcid, &srcenv, 0) != 0) {
+        return -E_BAD_ENV;
+    }
+
+    // check dstenv
+    if (envid2env(dstid, &dstenv, 0) != 0) {
+        return -E_BAD_ENV;
+    }
+
+    // find page in srcenv
+    if ((ppage = page_lookup(srcenv->env_pgdir, round_srcva, &ppte)) == 0) {
+        return -E_UNSPECIFIED;
+    }
+
+    // insert page to dstenv
+    if ((page_insert(dstenv->env_pgdir, ppage, round_dstva, perm)) != 0) {
+        return -E_NO_MEM;
+    }
+
+    return ret;
 }
 
 /* Overview:
@@ -190,14 +236,24 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
  * Cannot unmap pages above UTOP.
  */
 /*** exercise 4.5 ***/
-int sys_mem_unmap(int sysno, u_int envid, u_int va)
-{
-	// Your code here.
-	int ret;
-	struct Env *env;
+int sys_mem_unmap(int sysno, u_int envid, u_int va) {
+    int ret;
+    struct Env *env;
 
-	return ret;
-	//	panic("sys_mem_unmap not implemented");
+    // check va
+    if (va < 0 || va >= UTOP) {
+        return -E_UNSPECIFIED;
+    }
+
+    // check envid
+    if (envid2env(envid, &env, 0) != 0) {
+        return -E_BAD_ENV;
+    }
+
+    page_remove(env, va);
+
+    return ret;
+    //	panic("sys_mem_unmap not implemented");
 }
 
 /* Overview:
@@ -213,15 +269,13 @@ int sys_mem_unmap(int sysno, u_int envid, u_int va)
  * 	Returns envid of new environment, or < 0 on error.
  */
 /*** exercise 4.8 ***/
-int sys_env_alloc(void)
-{
-	// Your code here.
-	int r;
-	struct Env *e;
+int sys_env_alloc(void) {
+    // Your code here.
+    int r;
+    struct Env *e;
 
-
-	return e->env_id;
-	//	panic("sys_env_alloc not implemented");
+    return e->env_id;
+    //	panic("sys_env_alloc not implemented");
 }
 
 /* Overview:
@@ -230,21 +284,20 @@ int sys_env_alloc(void)
  * Pre-Condition:
  * 	status should be one of `ENV_RUNNABLE`, `ENV_NOT_RUNNABLE` and
  * `ENV_FREE`. Otherwise return -E_INVAL.
- * 
+ *
  * Post-Condition:
  * 	Returns 0 on success, < 0 on error.
  * 	Return -E_INVAL if status is not a valid status for an environment.
  * 	The status of environment will be set to `status` on success.
  */
 /*** exercise 4.14 ***/
-int sys_set_env_status(int sysno, u_int envid, u_int status)
-{
-	// Your code here.
-	struct Env *env;
-	int ret;
+int sys_set_env_status(int sysno, u_int envid, u_int status) {
+    // Your code here.
+    struct Env *env;
+    int ret;
 
-	return 0;
-	//	panic("sys_env_set_status not implemented");
+    return 0;
+    //	panic("sys_env_set_status not implemented");
 }
 
 /* Overview:
@@ -259,14 +312,12 @@ int sys_set_env_status(int sysno, u_int envid, u_int status)
  *
  * Note: This hasn't be used now?
  */
-int sys_set_trapframe(int sysno, u_int envid, struct Trapframe *tf)
-{
-
-	return 0;
+int sys_set_trapframe(int sysno, u_int envid, struct Trapframe *tf) {
+    return 0;
 }
 
 /* Overview:
- * 	Kernel panic with message `msg`. 
+ * 	Kernel panic with message `msg`.
  *
  * Pre-Condition:
  * 	msg can't be NULL
@@ -274,29 +325,26 @@ int sys_set_trapframe(int sysno, u_int envid, struct Trapframe *tf)
  * Post-Condition:
  * 	This function will make the whole system stop.
  */
-void sys_panic(int sysno, char *msg)
-{
-	// no page_fault_mode -- we are trying to panic!
-	panic("%s", TRUP(msg));
+void sys_panic(int sysno, char *msg) {
+    // no page_fault_mode -- we are trying to panic!
+    panic("%s", TRUP(msg));
 }
 
 /* Overview:
- * 	This function enables caller to receive message from 
- * other process. To be more specific, it will flag 
- * the current process so that other process could send 
+ * 	This function enables caller to receive message from
+ * other process. To be more specific, it will flag
+ * the current process so that other process could send
  * message to it.
  *
  * Pre-Condition:
  * 	`dstva` is valid (Note: NULL is also a valid value for `dstva`).
- * 
+ *
  * Post-Condition:
- * 	This syscall will set the current process's status to 
- * ENV_NOT_RUNNABLE, giving up cpu. 
+ * 	This syscall will set the current process's status to
+ * ENV_NOT_RUNNABLE, giving up cpu.
  */
 /*** exercise 4.7 ***/
-void sys_ipc_recv(int sysno, u_int dstva)
-{
-}
+void sys_ipc_recv(int sysno, u_int dstva) {}
 
 /* Overview:
  * 	Try to send 'value' to the target env 'envid'.
@@ -317,13 +365,10 @@ void sys_ipc_recv(int sysno, u_int dstva)
  */
 /*** exercise 4.7 ***/
 int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
-					 u_int perm)
-{
+                     u_int perm) {
+    int r;
+    struct Env *e;
+    struct Page *p;
 
-	int r;
-	struct Env *e;
-	struct Page *p;
-
-	return 0;
+    return 0;
 }
-
