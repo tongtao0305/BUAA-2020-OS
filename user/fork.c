@@ -159,7 +159,7 @@ int fork(void) {
     u_int newenvid;
     extern struct Env *envs;
     extern struct Env *env;
-    u_int i;
+    u_int i, j;
 
     // The parent installs pgfault using set_pgfault_handler
     set_pgfault_handler(pgfault);
