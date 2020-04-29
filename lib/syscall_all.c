@@ -143,7 +143,6 @@ int sys_set_pgfault_handler(int sysno, u_int envid, u_int func,
  */
 /*** exercise 4.3 ***/
 int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm) {
-    // Your code here.
     struct Env *env;
     struct Page *ppage;
     int ret;
@@ -157,7 +156,7 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm) {
         return -E_INVAL;
     }
 
-    if ((ret = envid2env(envid, &env, 1)) != 0) {
+    if ((ret = envid2env(envid, &env, 0)) != 0) {
         return ret;
     }
 
@@ -165,7 +164,7 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm) {
         return ret;
     }
 
-    if ((ret = page_insert(env->env_pgdir, ppage, va, 1)) != 0) {
+    if ((ret = page_insert(env->env_pgdir, ppage, va, perm)) != 0) {
         return ret;
     }
 
@@ -257,7 +256,7 @@ int sys_mem_unmap(int sysno, u_int envid, u_int va) {
         return -E_BAD_ENV;
     }
 
-    page_remove(env, va);
+    page_remove(env->env_pgdir, va);
 
     return ret;
     //	panic("sys_mem_unmap not implemented");
@@ -431,7 +430,7 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
         return -E_BAD_ENV;
     }
 
-    if (e->env_status != 1) {
+    if (e->env_ipc_recving != 1) {
         return -E_IPC_NOT_RECV;
     }
 
@@ -442,8 +441,7 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
     e->env_status = ENV_RUNNABLE;
 
     if (srcva != 0) {
-        if (r = sys_mem_map(sysno, curenv->env_id, srcva, envid,
-                            e->env_ipc_dstva, perm)) {
+        if (r = sys_mem_map(sysno, curenv->env_id, srcva, envid, e->env_ipc_dstva, perm)) {
             return r;
         }
         e->env_ipc_perm = perm;
