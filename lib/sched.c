@@ -31,23 +31,18 @@ void sched_yield(void)
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
     
-    if(--count <= 0 || curenv == NULL || e->env_status == ENV_NOT_RUNNABLE){
+    if(--count <= 0 || curenv == NULL || curenv->env_status != ENV_RUNNABLE){
         do { 
-        	e = LIST_FIRST(&env_sched_list[point]);
-            if (e == NULL) {
-                if (!LIST_EMPTY(&env_sched_list[1 - point])) {
-                    point = 1 - point;
-                    e = LIST_FIRST(&env_sched_list[point]);
-                } else
-                    panic("no runnable process\n");   
-            }
-            count = e->env_pri;
-            LIST_REMOVE(e, env_sched_link);
-            LIST_INSERT_HEAD(&env_sched_list[1 - point], e, env_sched_link);
-        	if(LIST_EMPTY(&env_sched_list[point])) {
+        	if(LIST_EMPTY(&env_sched_list[point])){
             	point = 1 - point;
        		}
-    	} while(e->env_status != ENV_RUNNABLE);
+        	e = LIST_FIRST(&env_sched_list[point]);
+			if (e != NULL) {
+        		LIST_REMOVE(e, env_sched_link);
+        		LIST_INSERT_HEAD(&env_sched_list[1-point], e, env_sched_link);
+        		count = e->env_pri;
+			}
+    	} while (e == NULL || e->env_status != ENV_RUNNABLE);
 	}
     env_run(e);
 }
