@@ -111,7 +111,7 @@ int sys_set_pgfault_handler(int sysno, u_int envid, u_int func,
     struct Env *env;
     int ret;
 
-    if ((ret = envid2env(envid, &env, 1)) != 0) {
+    if ((ret = envid2env(envid, &env, 0)) != 0) {
         return ret;
     }
 
