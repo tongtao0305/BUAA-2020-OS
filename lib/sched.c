@@ -35,9 +35,9 @@ void sched_yield(void)
         do { 
         	e = LIST_FIRST(&env_sched_list[point]);
             if (e == NULL) {
-                if (!LIST_EMPTY(&env_sched_list[1 - c_list])) {
+                if (!LIST_EMPTY(&env_sched_list[1 - point])) {
                     point = 1 - point;
-                    e = LIST_FIRST(&env_sched_list[c_list]);
+                    e = LIST_FIRST(&env_sched_list[point]);
                 } else
                     panic("no runnable process\n");   
             }
