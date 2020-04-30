@@ -163,7 +163,6 @@ int fork(void) {
 
     // The parent installs pgfault using set_pgfault_handler
     set_pgfault_handler(pgfault);
-
     newenvid = syscall_env_alloc();
     if (newenvid == 0) {
         env = &envs[ENVX(syscall_getenvid())];
@@ -171,6 +170,7 @@ int fork(void) {
     }
 
     // alloc a new alloc
+    /*
     for (i = 0; i < USTACKTOP; i += PDMAP) {
         if ((*vpd)[PDX(i)]) {
             for (j = 0; j < PDMAP && i + j < USTACKTOP; j += BY2PG) {
@@ -180,16 +180,21 @@ int fork(void) {
             }
         }
     }
-    if (syscall_mem_alloc(newenvid, UXSTACKTOP - BY2PG,
-                          PTE_V | PTE_R | PTE_LIBRARY) != 0) {
+    */
+
+    for(i = 0;i < USTACKTOP;i += BY2PG) {
+        if(((*vpd)[VPN(i)/1024]) != 0 && ((*vpt)[VPN(i)]) != 0) {
+            duppage(newenvid, VPN(i));
+        }
+    }
+
+    if (syscall_mem_alloc(newenvid, UXSTACKTOP - BY2PG, PTE_V | PTE_R) != 0) {
         user_panic("UXSTACK alloc failed!\n");
     }
-    if (syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler,
-                                    UXSTACKTOP) < 0) {
+    if (syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler, UXSTACKTOP) < 0) {
         user_panic("page fault handler setup failed.\n");
     }
     syscall_set_env_status(newenvid, ENV_RUNNABLE);
-    writef("OK! newenvid is:%d\n", newenvid);
 
     return newenvid;
 }
