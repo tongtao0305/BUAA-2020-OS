@@ -39,7 +39,7 @@ void sched_yield(void)
         	e = LIST_FIRST(&env_sched_list[point]);
 			if (e != NULL) {
         		LIST_REMOVE(e, env_sched_link);
-        		LIST_INSERT_HEAD(&env_sched_list[1-point], e, env_sched_link);
+        		LIST_INSERT_TAIL(&env_sched_list[1-point], e, env_sched_link);
         		count = e->env_pri;
 			}
     	} while(e == NULL || e->env_status != ENV_RUNNABLE);
