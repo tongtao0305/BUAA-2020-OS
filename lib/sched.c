@@ -52,22 +52,22 @@ void sched_yield(void)
     count--;
     if (count == 0 || curenv == NULL || curenv->env_status!=ENV_RUNNABLE){
         while(1) {
-            if(lIST_EMPTY(&env_sched_list[point])) {
+            if(LIST_EMPTY(&env_sched_list[point])) {
                 point = 1 - point;
                 continue;
             }
-            e = lIST_FIRST(&env_sched_list[point]);
+            e = LIST_FIRST(&env_sched_list[point]);
             if (e->env_status == ENV_FREE){
                 LIST_REMOVE(e, env_sched_link);
             } else if (e->env_status == ENV_NOT_RUNNABLE){
                 LIST_REMOVE(e, env_sched_link);
-                LIST_INSERT_TAIL(&env_sched_list[l-point], e, env_sched_link);
+                LIST_INSERT_TAIL(&env_sched_list[1-point], e, env_sched_link);
             } else {
                 break;
             }
         }
         LIST_REMOVE(e, env_sched_link);
-        LIST_INSERT_TAIL(&env_sched_list[l-point], e, env_sched_link);
+        LIST_INSERT_TAIL(&env_sched_list[1-point], e, env_sched_link);
         count = e->env_pri;
         env_run(e);
     }
