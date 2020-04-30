@@ -31,7 +31,7 @@ void sched_yield(void)
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
     
-    if(count <= 0 || e == NULL || e->env_status == ENV_NOT_RUNNABLE){
+    if(count <= 0 || e == NULL || e->env_status == ENV_NOT_RUNNABLE || curenv == NULL || curenv->env_status == ENV_NOT_RUNNABLE){
     	do {
         	if(LIST_EMPTY(&env_sched_list[point])) {
             	point = 1 - point;
