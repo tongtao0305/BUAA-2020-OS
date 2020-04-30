@@ -12,12 +12,12 @@
  *  3. CANNOT use `return` statement!
  */
 /*** exercise 3.14 ***/
-/*
 void sched_yield(void)
 {
     static int count = 0; // remaining time slices of current env
     static int point = 0; // current env_sched_list index
-*/    
+    static struct Env *e = NULL;
+
     /*  hint:
      *  1. if (count==0), insert `e` into `env_sched_list[1-point]`
      *     using LIST_REMOVE and LIST_INSERT_TAIL.
@@ -30,12 +30,10 @@ void sched_yield(void)
      *  functions or macros below may be used (not all):
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
-/*
-    static struct Env *e;
-    if(--count <= 0){
+    
+    if(count <= 0 || curenv == NULL || e->env_status == ENV_NOT_RUNNABLE){
     	do {
-        	if(LIST_EMPTY(&env_sched_list[point]))
-        	{
+        	if(LIST_EMPTY(&env_sched_list[point])) {
             	point = 1 - point;
        		}
         	e = LIST_FIRST(&env_sched_list[point]);
@@ -47,29 +45,7 @@ void sched_yield(void)
     	}
 		while(e == NULL || e->env_status != ENV_RUNNABLE);
 	}
+    count--;
     env_run(e);
 }
-*/
 
-void sched_yield(void)
-{
-        static pos = 0;
-        static times = 0;
-        static struct Env *e = NULL;
-        if(e!=NULL && e->env_status != ENV_RUNNABLE){
-                LIST_REMOVE(e,env_sched_link);
-                e = NULL;
-                times = 0;
-        }
-        if(times == 0) {
-                if(LIST_FIRST(&env_sched_list[pos]) == NULL){
-                        pos = 1 - pos;
-                }
-                e = LIST_FIRST(&env_sched_list[pos]);
-                times = e->env_pri;
-                LIST_REMOVE(e,env_sched_link);
-                LIST_INSERT_HEAD(&env_sched_list[1-pos],e,env_sched_link);
-        }
-        times = times - 1;
-        env_run(e);
-}
