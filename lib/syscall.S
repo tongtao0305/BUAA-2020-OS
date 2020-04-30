@@ -30,7 +30,7 @@ NESTED(handle_sys,TF_SIZE, sp)
     lw      t4, 20(t0)                  // t4 <- the 6th argument of msyscall
 
     // TODO: Allocate a space of six arguments on current kernel stack and copy the six arguments to proper location
-    addiu   sp, sp, -24
+    subiu   sp, sp, 24
     sw      t4, 20(sp)  
     sw      t3, 16(sp)  
     sw      a3, 12(sp)  

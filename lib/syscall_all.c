@@ -59,10 +59,8 @@ u_int sys_getenvid(void) { return curenv->env_id; }
  */
 /*** exercise 4.6 ***/
 void sys_yield(void) {
-    struct Trapframe *src =
-        (struct Trapframe *)(KERNEL_SP - sizeof(struct Trapframe));
-    struct Trapframe *dst =
-        (struct Trapframe *)(TIMESTACK - sizeof(struct Trapframe));
+    struct Trapframe *src = (struct Trapframe *)(KERNEL_SP - sizeof(struct Trapframe));
+    struct Trapframe *dst = (struct Trapframe *)(TIMESTACK - sizeof(struct Trapframe));
     bcopy((void *)src, (void *)dst, sizeof(struct Trapframe));
     sched_yield();
 }
@@ -243,17 +241,15 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
  */
 /*** exercise 4.5 ***/
 int sys_mem_unmap(int sysno, u_int envid, u_int va) {
-    int ret;
+    int ret = 0;
     struct Env *env;
 
-    // check va
     if (va < 0 || va >= UTOP) {
         return -E_UNSPECIFIED;
     }
 
-    // check envid
-    if (envid2env(envid, &env, 0) != 0) {
-        return -E_BAD_ENV;
+    if ((ret = envid2env(envid, &env, 0)) != 0) {
+        return ret;
     }
 
     page_remove(env->env_pgdir, va);
@@ -414,8 +410,7 @@ void sys_ipc_recv(int sysno, u_int dstva) {
  * Hint: the only function you need to call is envid2env.
  */
 /*** exercise 4.7 ***/
-int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
-                     u_int perm) {
+int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva, u_int perm) {
     int r;
     struct Env *e;
     struct Page *p;
@@ -426,8 +421,8 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
     }
 
     // check envid
-    if (envid2env(envid, &e, 0) != 0) {
-        return -E_BAD_ENV;
+    if ((r = envid2env(envid, &e, 0)) != 0) {
+        return r;
     }
 
     if (e->env_ipc_recving != 1) {
@@ -441,10 +436,7 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
     e->env_status = ENV_RUNNABLE;
 
     if (srcva != 0) {
-        if (r = sys_mem_map(sysno, curenv->env_id, srcva, envid, e->env_ipc_dstva, perm)) {
-            return r;
-        }
-        e->env_ipc_perm = perm;
+        e->env_ipc_perm = perm | PTE_V | PTE_R;
     }
 
     return 0;
