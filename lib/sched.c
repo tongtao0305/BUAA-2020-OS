@@ -30,7 +30,7 @@ void sched_yield(void)
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
     
-    struct Env *e = curenv;
+    static struct Env *e;
     if(--count <= 0 || curenv == NULL || curenv->env_status == ENV_NOT_RUNNABLE){
         do {
         	if(LIST_EMPTY(&env_sched_list[point])) {
