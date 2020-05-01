@@ -123,7 +123,7 @@ static void duppage(u_int envid, u_int pn) {
     addr = pn * BY2PG;
     perm = (*vpt)[pn] & 0xfff;
 
-
+    /*
     if(!(perm & PTE_V)){
         return;
     } else if ((perm & PTE_R) && (!(perm & PTE_LIBRARY))){
@@ -138,9 +138,9 @@ static void duppage(u_int envid, u_int pn) {
 			user_panic("user panic mem map error!3");
 		}    
     }
-    return;
+    */
 
-    /*
+    
     if ((perm & PTE_R) != 0 && (perm & PTE_V) != 0 && (perm & PTE_LIBRARY) == PTE_LIBRARY) {
         perm = perm | PTE_R;  // set to writable
     } else if ((perm & PTE_R) != 0 || (perm & PTE_COW) == PTE_COW) {
@@ -153,7 +153,7 @@ static void duppage(u_int envid, u_int pn) {
     if (syscall_mem_map(0, addr, 0, addr, perm) != 0) {
         user_panic("syscall_mem_map for father failed!\n");
     }
-    */
+    
     //	user_panic("duppage not implemented");
 }
 
