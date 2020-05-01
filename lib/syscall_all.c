@@ -390,12 +390,10 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva, u_int per
     struct Env *e;
     struct Page *p;
 
-    // check srcva
     if (srcva >= UTOP || srcva < 0) {
         return -E_INVAL;
     }
 
-    // check envid
     if ((r = envid2env(envid, &e, 0)) != 0) {
         return r;
     }
@@ -404,14 +402,15 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva, u_int per
         return -E_IPC_NOT_RECV;
     }
 
-    // update target's ipc fields
     e->env_ipc_recving = 0;
     e->env_ipc_from = curenv->env_id;
     e->env_ipc_value = value;
     e->env_status = ENV_RUNNABLE;
 
     if (srcva != 0) {
-        if (r=sys_mem_map(sysno,curenv->env_id,srcva,envid,e->env_ipc_dstva,perm)) return r; 
+        if (r = sys_mem_map(sysno, curenv->env_id, srcva, envid, e->env_ipc_dstva, perm)) {
+            return r;
+        }
         e->env_ipc_perm = perm | PTE_V | PTE_R;
     }
 
