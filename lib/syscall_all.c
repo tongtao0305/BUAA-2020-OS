@@ -411,6 +411,7 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva, u_int per
     e->env_status = ENV_RUNNABLE;
 
     if (srcva != 0) {
+        if (r=sys_mem_map(sysno,curenv->env_id,srcva,envid,e->env_ipc_dstva,perm)) return r; 
         e->env_ipc_perm = perm | PTE_V | PTE_R;
     }
 
