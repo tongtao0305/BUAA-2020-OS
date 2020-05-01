@@ -80,23 +80,19 @@ void user_bzero(void *v, u_int n) {
 static void pgfault(u_int va) {
     u_int *tmp;
     va = ROUNDDOWN(va, BY2PG);
-    tmp = UTOP - 2 * BY2PG;
+    tmp = UXSTACKTOP - 2 * BY2PG;
     u_int perm = (*vpt)[VPN(va)] & 0xfff;
 
-    if ((perm & PTE_COW) != PTE_COW) {
+    if (!(perm & PTE_COW)) {
         user_panic("va is not PTE_COW!\n");
     } else {
-        // map the new page at a temporary place
         if (syscall_mem_alloc(0, tmp, perm & (~PTE_COW) | PTE_R) != 0) {
             user_panic("sys_mem_alloc error!\n");
         }
-        // copy the content
         user_bcopy((void *)va, (void *)tmp, BY2PG);
-        // map the page on the appropriate place
         if (syscall_mem_map(0, tmp, 0, va, perm & (~PTE_COW) | PTE_R) != 0) {
             user_panic("sys_mem_map error!\n");
         }
-        // unmap the temporary place
         if (syscall_mem_unmap(0, tmp) != 0) {
             user_panic("sys_mem_unmap error!\n");
         }
@@ -127,8 +123,25 @@ static void duppage(u_int envid, u_int pn) {
     addr = pn * BY2PG;
     perm = (*vpt)[pn] & 0xfff;
 
-    if ((perm & PTE_R) != 0 && (perm & PTE_V) != 0 &&
-        (perm & PTE_LIBRARY) == PTE_LIBRARY) {
+    /*
+    if(!(perm & PTE_V)){
+        return;
+    } else if ((perm & PTE_R) && (!(perm & PTE_LIBRARY))){
+        if(syscall_mem_map(0, addr, envid, addr, perm | PTE_COW) < 0) {
+			user_panic("user panic mem map error!4");
+		}
+		if(syscall_mem_map(0, addr, 0, addr, perm | PTE_COW) < 0) {
+			user_panic("user panic mem map error!5");
+		}    
+    } else {
+		if(syscall_mem_map(0, addr, envid, addr, perm) < 0) {
+			user_panic("user panic mem map error!3");
+		}    
+    }
+    */
+
+    
+    if ((perm & PTE_R) != 0 && (perm & PTE_V) != 0 && (perm & PTE_LIBRARY) == PTE_LIBRARY) {
         perm = perm | PTE_R;  // set to writable
     } else if ((perm & PTE_R) != 0 || (perm & PTE_COW) == PTE_COW) {
         perm = perm | PTE_COW;  // set to copy on write
@@ -140,6 +153,7 @@ static void duppage(u_int envid, u_int pn) {
     if (syscall_mem_map(0, addr, 0, addr, perm) != 0) {
         user_panic("syscall_mem_map for father failed!\n");
     }
+    
     //	user_panic("duppage not implemented");
 }
 
@@ -159,11 +173,10 @@ int fork(void) {
     u_int newenvid;
     extern struct Env *envs;
     extern struct Env *env;
-    u_int i;
+    u_int i, j;
 
     // The parent installs pgfault using set_pgfault_handler
     set_pgfault_handler(pgfault);
-
     newenvid = syscall_env_alloc();
     if (newenvid == 0) {
         env = &envs[ENVX(syscall_getenvid())];
@@ -171,6 +184,7 @@ int fork(void) {
     }
 
     // alloc a new alloc
+    /*
     for (i = 0; i < USTACKTOP; i += PDMAP) {
         if ((*vpd)[PDX(i)]) {
             for (j = 0; j < PDMAP && i + j < USTACKTOP; j += BY2PG) {
@@ -180,16 +194,28 @@ int fork(void) {
             }
         }
     }
-    if (syscall_mem_alloc(newenvid, UXSTACKTOP - BY2PG,
-                          PTE_V | PTE_R | PTE_LIBRARY) != 0) {
+    */
+    /*
+    for(i = 0;i < USTACKTOP;i += BY2PG) {
+        if(((*vpd)[VPN(i)/1024]) != 0 && ((*vpt)[VPN(i)]) != 0) {
+            duppage(newenvid, VPN(i));
+        }
+    }
+    */
+	for(i = 0; i < UTOP - 2*BY2PG; i+=BY2PG){
+ 		if((((*vpd)[PDX(i)])&PTE_V) && (((*vpt)[VPN(i)])&PTE_V)){
+			duppage(newenvid, VPN(i));
+		}
+	}
+
+
+    if (syscall_mem_alloc(newenvid, UXSTACKTOP - BY2PG, PTE_V | PTE_R) < 0) {
         user_panic("UXSTACK alloc failed!\n");
     }
-    if (syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler,
-                                    UXSTACKTOP) < 0) {
+    if (syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler, UXSTACKTOP) < 0) {
         user_panic("page fault handler setup failed.\n");
     }
     syscall_set_env_status(newenvid, ENV_RUNNABLE);
-    writef("OK! newenvid is:%d\n", newenvid);
 
     return newenvid;
 }
