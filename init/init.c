@@ -73,3 +73,5 @@ void bzero(void *b, size_t len)
 	}		
 	
 }
+
+void sys_super_multi_parameter();

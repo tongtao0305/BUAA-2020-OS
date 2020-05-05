@@ -25,24 +25,53 @@ NESTED(handle_sys,TF_SIZE, sp)
     addu    t1, t1, t0                  // t1 <- table entry of specific syscall
     lw      t2, 0(t1)                   // t2 <- function entry of specific syscall
 
+    // 获取用户态的栈空间地址并保存在t0
     lw      t0, TF_REG29(sp)            // t0 <- user's stack pointer
-    lw      t3, 16(t0)                  // t3 <- the 5th argument of msyscall
-    lw      t4, 20(t0)                  // t4 <- the 6th argument of msyscall
 
-    // TODO: Allocate a space of six arguments on current kernel stack and copy the six arguments to proper location
-    addi    sp, sp, -24
-    sw      t4, 20(sp)  
-    sw      t3, 16(sp)  
-    sw      a3, 12(sp)  
-    sw      a2, 8(sp)  
-    sw      a1, 4(sp)  
-    sw      a0, 0(sp)  
+    // 取出前三个参数并保存在a0-a2
+    lw      a0, TF_REG4(sp)
+    lw      a1, TF_REG6(sp)
+    lw      a2, TF_REG7(sp)
+    
+    // 取出参数的个数并保存在s1
+    lw		s1, TF_REG5(sp)
+
+	addiu	t4, s1, 1
+	sll		s2, t4, 2
+	subu	sp, sp, s2
+
+	addiu	t0, t0, 16
+
+    // 将第三个参数保存在a3寄存器
+    IF_1_BEGIN:
+	li		t3, 3
+	blt		s1, t3, IF_1_END
+	nop
+		lw		a3, 0(t0)
+		addiu	t0, t0, 4
+	IF_1_END:
+
+	li		t3, 4
+	addiu	t5, sp, 16
+
+    // 将第四个及之后的参数保存到内核态的栈中
+	FOR_1_BEGIN:
+	bgt		t3, s1, FOR_1_END
+	nop
+		lw		t4, 0(t0)
+		addiu	t0, t0, 4
+		sw		t4, 0(t5)
+		addiu	t5, t5, 4
+	addiu	t3, t3, 1
+	j FOR_1_BEGIN
+	nop
+	FOR_1_END:
     
     jalr    t2                          // Invoke sys_* function
     nop
     
     // TODO: Resume current kernel stack
-    addiu   sp, sp, 24
+    addu   sp, sp, s2
     
     sw      v0, TF_REG2(sp)             // Store return value of function sys_* (in $v0) into trapframe
 
@@ -67,3 +96,4 @@ sys_call_table:                         // Syscall Table
     .word sys_ipc_can_send
     .word sys_ipc_recv
     .word sys_cgetc
+    .word sys_super_multi_parameter
