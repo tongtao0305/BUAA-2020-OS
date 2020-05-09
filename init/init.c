@@ -8,6 +8,10 @@
 extern char aoutcode[];
 extern char boutcode[];
 
+int sys_super_multi_parameter(){
+
+}
+
 void mips_init()
 {
 	printf("init.c:\tmips_init() is called\n");
@@ -18,9 +22,14 @@ void mips_init()
 	
 	env_init();
 	
-	ENV_CREATE(user_fktest);
+	//ENV_CREATE(user_fktest);
 	//ENV_CREATE(user_pingpong);
 	
+    // lab4-extra
+    ENV_CREATE_PRIORITY(user_pp_a, 10);
+	ENV_CREATE_PRIORITY(user_pp_b, 10);
+	ENV_CREATE_PRIORITY(user_pp_c, 10);
+
     trap_init();
 	kclock_init();
 
@@ -73,5 +82,3 @@ void bzero(void *b, size_t len)
 	}		
 	
 }
-
-void sys_super_multi_parameter();

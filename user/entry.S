@@ -106,3 +106,27 @@ nop
 		jr	k0			//
 		lw	sp,TF_REG29(sp)  /* Deallocate stack */  
 
+// lab4-extra part1
+LEAF(syscall_ipc_can_multi_send)
+    
+    // 计算参数的个数并存入t1
+    //li t0, 0
+    //addu t0, t0, SYS_ipc_can_multi_send
+    addu t1, a3, 4
+    
+	sw      a3, 12(sp)
+	sw      a2, 8(sp)
+    addu    sp, sp, -8
+    addu    a2, a0, 0
+	addu    a3, a1, 0
+
+    li      a0, 9543
+    addu    a1, t1, 0
+
+	syscall
+
+    addu sp, sp, 8
+
+	jr ra
+	nop
+END(syscall_ipc_can_multi_send)

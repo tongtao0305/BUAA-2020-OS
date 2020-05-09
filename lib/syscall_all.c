@@ -416,3 +416,44 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva, u_int per
 
     return 0;
 }
+
+// lab4-extra
+int sys_ipc_can_multi_send(int sysno, u_int value, u_int srcva, u_int perm, int env_count, ...){
+    int i, r;
+    struct Env *e;
+    va_list ap;
+    
+    // 判断接收信息的进程是否都准备就绪
+    va_start(ap, env_count);
+    for (i = 0; i < env_count; i++) {
+        if ((envid2env(va_arg(ap, u_int), &e, 0)) != 0) {
+            return -E_INVAL;
+        }
+        if (e->env_ipc_recving != 1) {
+            return -E_IPC_NOT_RECV;
+        }
+    }
+    va_end(ap);
+
+    // 开始传输信息
+    va_start(ap, env_count);
+    for (i = 0; i < env_count; i++) {
+        u_int envid = va_arg(ap, u_int);
+        envid2env(envid, &e, 0);
+        
+        e->env_ipc_recving = 0;
+        e->env_ipc_from = curenv->env_id;
+        e->env_ipc_value = value;
+        e->env_status = ENV_RUNNABLE;
+
+        //if (srcva != 0) {
+            //if (r = sys_mem_map(sysno, curenv->env_id, srcva, envid, e->env_ipc_dstva, perm)) {
+                //return r;
+            //}
+            e->env_ipc_perm = perm | PTE_V | PTE_R;
+        //}
+    }
+    va_end(ap);
+
+    return 0;
+}
