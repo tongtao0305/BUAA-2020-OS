@@ -3,31 +3,28 @@ ENTRY(_start)
 
 SECTIONS
 {
-  
-    /*** exercise 3.12 ***/
-    . = 0x80000080;
-    .except_vec3 : {
-        *(.text.exc_vec3)
-    }
-
-    . = 0x80010000;
-    .text : {
-        *(.text)
-    }
-
-    .bss  : {
-        *(.bss)
-    }
-
-    .data : {
-	    *(.data)
+	. = 0x80000080;
+	.expect_vec3 : {
+		*(.text.exc_vec3)
+	}
+	. = 0x80010000;
+	.text : {
+		*(.text)
 	}
 
-    .sdata : {
-        *(.sdata)
-    }
+	.bss  : {
+		*(.bss)
+	}
 
-    . = 0x80400000;
+	.data : {
+		*(.data)
+	}
 
-    end = . ;
+	.sdata : {
+		*(.sdata)
+	}
+
+	. = 0x80400000;
+
+	end = . ;
 }

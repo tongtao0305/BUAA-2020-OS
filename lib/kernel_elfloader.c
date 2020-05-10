@@ -43,7 +43,6 @@ int is_elf_format(u_char *binary)
  *   Return 0 if success. Otherwise return < 0.
  *   If success, the entry point of `binary` will be stored in `start`
  */
-/*** exercise 3.7 ***/
 int load_elf(u_char *binary, int size, u_long *entry_point, void *user_data,
 			 int (*map)(u_long va, u_int32_t sgsize,
 						u_char *bin, u_int32_t bin_size, void *user_data))
@@ -67,21 +66,23 @@ int load_elf(u_char *binary, int size, u_long *entry_point, void *user_data,
         ph_entry_count = ehdr->e_phnum;
         ph_entry_size = ehdr->e_phentsize;
 
-    while (ph_entry_count--) {
-        phdr = (Elf32_Phdr *)ptr_ph_table;
+        while (ph_entry_count--) {
+                phdr = (Elf32_Phdr *)ptr_ph_table;
 
-        if (phdr->p_type == PT_LOAD) {
-	    /* Your task here!  */
+                if (phdr->p_type == PT_LOAD) {
+	 /* Your task here!  */
         /* Real map all section at correct virtual address.Return < 0 if error. */
         /* Hint: Call the callback function you have achieved before. */
-        r = map(phdr->p_vaddr, phdr->p_memsz, binary + phdr->p_offset, phdr->p_filesz, user_data);	
-            if (r < 0){
-                return r;
-            }
-        }
-        ptr_ph_table += ph_entry_size;
-    }
+					r = map(phdr->p_vaddr, phdr->p_filesz, binary + phdr->p_offset, phdr->p_memsz, user_data);
+					if (r != 0)
+					{
+						return r;
+					}
+                }
 
-    *entry_point = ehdr->e_entry;
-    return 0;
+                ptr_ph_table += ph_entry_size;
+        }
+
+        *entry_point = ehdr->e_entry;
+        return 0;
 }
