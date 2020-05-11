@@ -7,7 +7,7 @@
 
 extern char aoutcode[];
 extern char boutcode[];
-
+ 
 void mips_init()
 {
 	printf("init.c:\tmips_init() is called\n");
