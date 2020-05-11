@@ -83,9 +83,11 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 	int write_status = 1;
 	int ide_can_write;
 	int r;
+
+    // DO NOT DELETE WRITEF !!!
+	writef("diskno: %d\n", diskno);
 	
-	//writef("diskno: %d\n", diskno);
-	while (offset_begin + offset < offset_end) {
+    while (offset_begin + offset < offset_end) {
         // error occurred, then panic.
 		if ((r = syscall_write_dev(&diskno, 0x13000010, 4)) != 0) {
 			user_panic("write diskno failed!\n");
