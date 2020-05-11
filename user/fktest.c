@@ -1,6 +1,5 @@
 #include "lib.h"
 
-static int A[1024];
 
 void umain()
 {
