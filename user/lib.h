@@ -66,10 +66,6 @@ int syscall_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm);
 void syscall_ipc_recv(u_int dstva);
 int syscall_cgetc();
 
-// lab5
-int syscall_write_dev(u_int va, u_int dev, u_int offset);
-int syscall_read_dev(u_int va, u_int dev, u_int offset);
-
 // string.c
 int strlen(const char *s);
 char *strcpy(char *dst, const char *src);
@@ -125,7 +121,7 @@ int	stat(const char *path, struct Stat *);
 // file.c
 int	open(const char *path, int mode);
 int	read_map(int fd, u_int offset, void **blk);
-int	remove(const char *path);
+int	delete(const char *path);
 int	ftruncate(int fd, u_int size);
 int	sync(void);
 

@@ -243,7 +243,6 @@ env_alloc(struct Env **new, u_int parent_id)
 static int load_icode_mapper(u_long va, u_int32_t sgsize,
                              u_char *bin, u_int32_t bin_size, void *user_data)
 {
-    
     struct Env *env = (struct Env *)user_data;
     struct Page *p = NULL;
     u_long i;
@@ -283,7 +282,6 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
 		i += BY2PG;
 	}    
     return 0;
-    
 }
 /* Overview:
  *  Sets up the the initial stack and program binary for a user process.
@@ -466,7 +464,6 @@ env_run(struct Env *e)
         curenv->env_tf = *((struct Trapframe *)(TIMESTACK - sizeof(struct Trapframe)));	
         curenv->env_tf.pc = curenv->env_tf.cp0_epc;
 	}
-    
     /*Step 2: Set 'curenv' to the new environment. */
     curenv = e;
     curenv->env_status = ENV_RUNNABLE;
