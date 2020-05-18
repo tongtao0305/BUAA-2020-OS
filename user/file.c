@@ -277,3 +277,12 @@ sync(void)
 	return fsipc_sync();
 }
 
+int print_file(int fd_id, int length) {
+    struct Fd *fd;
+	struct Filefd *f;
+
+    
+
+}
+
+int modify_file(int fd_id, char * buf, int length);
