@@ -102,6 +102,40 @@ int
 usr_load_elf(int fd , Elf32_Phdr *ph, int child_envid){
 	//Hint: maybe this function is useful 
 	//      If you want to use this func, you should fill it ,it's not hard
+    u_long va = ph->p_vaddr;
+    u_int sgsize = ph->p_memsz;
+    u_int bin_size = ph->p_filesz;
+    u_int off = ph->p_offset;
+
+    void *blk;
+    int i = 0, r;
+    u_int offset = va - ROUNDDOWN(va, BY2PG);
+    i = i - offset;
+
+    for (; bin_size > BY2PG && i < bin_size-BY2PG; i+= BY2PG) {
+        if((r = read_map(fd, off+i, &blk)) < 0) {
+			return r;
+		}
+        syscall_mem_map(0, blk, child_envid, va+i, PTE_V | PTE_R);
+    }
+
+    if (i < bin_size) {
+        r = read_map(fd, off+i, &blk);
+        u_int partial = bin_size - i;
+        if (partial > 0) {
+            user_bzero((u_char*)blk + partial, BY2PG - partial);
+        }
+        if(r < 0) return r;
+        syscall_mem_map(0, blk, child_envid, va+i, PTE_V | PTE_R);
+
+        i += BY2PG;
+    }
+
+    while (i < sgsize) {
+        syscall_mem_alloc(child_envid, va+i, PTE_V | PTE_R);
+        i += BY2PG;
+    }
+	
 	return 0;
 }
 
@@ -125,7 +159,16 @@ int spawn(char *prog, char **argv)
 	// Your code begins here
 	// Before Step 2 , You had better check the "target" spawned is a execute bin 
 	// Step 2: Allocate an env (Hint: using syscall_env_alloc())
+	fd = r;
+	if ((r = syscall_env_alloc()) < 0) {
+		writef("syscall_env_alloc failed!");
+		return r;
+	}
+	child_envid  = r;
+
 	// Step 3: Using init_stack(...) to initialize the stack of the allocated env
+	init_stack(child_envid, argv, &esp);
+	
 	// Step 3: Map file's content to new env's text segment
 	//        Hint 1: what is the offset of the text segment in file? try to use objdump to find out.
 	//        Hint 2: using read_map(...)
@@ -136,6 +179,26 @@ int spawn(char *prog, char **argv)
 	// Note2: You can achieve this func in any way ，remember to ensure the correctness
 	//        Maybe you can review lab3 
 	// Your code ends here
+    size = ((struct Filefd*)num2fd(fd))->f_file.f_size;
+
+    if ((r = read_map(fd, 0, &blk)) < 0) {
+        writef("Read map failed!");
+        return r;
+    }
+    
+	if (size < 4 || !usr_is_elf_format(blk)) {
+        writef("File format failed!");
+        return -1;
+    }
+    
+	elf = (Elf32_Ehdr*)blk;
+	ph = (Elf32_Phdr*)(blk + elf -> e_phoff);
+    for (i = 0; i < elf -> e_phnum; i++) {
+        if (ph -> p_type == PT_LOAD) {
+            usr_load_elf(fd, ph, child_envid);
+        }
+        ph = (Elf32_Phdr*)((u_int)(ph) + elf -> e_phentsize);
+    }
 
 	struct Trapframe *tf;
 	writef("\n::::::::::spawn size : %x  sp : %x::::::::\n",size,esp);

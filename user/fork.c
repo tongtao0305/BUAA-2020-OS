@@ -122,29 +122,11 @@ static void duppage(u_int envid, u_int pn) {
 
     addr = pn * BY2PG;
     perm = (*vpt)[pn] & 0xfff;
-
-    /*
-    if(!(perm & PTE_V)){
-        return;
-    } else if ((perm & PTE_R) && (!(perm & PTE_LIBRARY))){
-        if(syscall_mem_map(0, addr, envid, addr, perm | PTE_COW) < 0) {
-			user_panic("user panic mem map error!4");
-		}
-		if(syscall_mem_map(0, addr, 0, addr, perm | PTE_COW) < 0) {
-			user_panic("user panic mem map error!5");
-		}    
-    } else {
-		if(syscall_mem_map(0, addr, envid, addr, perm) < 0) {
-			user_panic("user panic mem map error!3");
-		}    
-    }
-    */
-
     
     if ((perm & PTE_R) != 0 && (perm & PTE_V) != 0 && (perm & PTE_LIBRARY) == PTE_LIBRARY) {
-        perm = perm | PTE_R;  // set to writable
+        perm = perm | PTE_R;
     } else if ((perm & PTE_R) != 0 || (perm & PTE_COW) == PTE_COW) {
-        perm = perm | PTE_COW;  // set to copy on write
+        perm = perm | PTE_COW;
     }
 
     if (syscall_mem_map(0, addr, envid, addr, perm) != 0) {
